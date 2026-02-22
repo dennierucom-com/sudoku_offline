@@ -1,186 +1,208 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  Alert,
+  TouchableOpacity,
+  ScrollView,
   SafeAreaView,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import SudokuBoard from "../src/components/SudokuBoard";
-import NumberPad from "../src/components/NumberPad";
-import {
-  generatePuzzle,
-  cloneBoard,
-  isValidPlacement,
-  isBoardComplete,
-  type Board,
-} from "../src/utils/sudoku";
+import { StatusBar } from "expo-status-bar";
 
-export default function GameScreen() {
-  const [board, setBoard] = useState<Board>([]);
-  const [puzzle, setPuzzle] = useState<Board>([]);
-  const [solution, setSolution] = useState<Board>([]);
-  const [selectedCell, setSelectedCell] = useState<[number, number] | null>(
-    null,
-  );
-  const [seconds, setSeconds] = useState(0);
+const COLORS = {
+  primary: "#1978e5",
+  charcoal: "#1A1A1A",
+  backgroundLight: "#F6F7F8",
+  white: "#FFFFFF",
+  slate400: "#94A3B8",
+  slate100: "#F1F5F9",
+  emerald600: "#059669",
+  emerald100: "#D1FAE5",
+  amber600: "#D97706",
+  amber100: "#FEF3C7",
+  rose600: "#E11D48",
+  rose100: "#FFE4E6",
+};
 
-  const startNewGame = useCallback(() => {
-    const { puzzle: p, solution: s } = generatePuzzle(40);
-    setPuzzle(p);
-    setSolution(s);
-    setBoard(cloneBoard(p));
-    setSelectedCell(null);
-    setSeconds(0);
-  }, []);
-
-  useEffect(() => {
-    startNewGame();
-  }, [startNewGame]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds((s) => s + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const formatTime = (s: number) => {
-    const mins = Math.floor(s / 60);
-    const secs = s % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-  const handleCellPress = useCallback(
-    (row: number, col: number) => {
-      if (puzzle.length > 0 && puzzle[row][col] !== 0) return;
-      setSelectedCell([row, col]);
-    },
-    [puzzle],
-  );
-
-  const handleNumberPress = useCallback(
-    (num: number) => {
-      if (!selectedCell) return;
-      const [r, c] = selectedCell;
-      if (puzzle[r][c] !== 0) return;
-
-      // Validate before placing
-      const temp = cloneBoard(board);
-      temp[r][c] = 0;
-      if (!isValidPlacement(temp, r, c, num)) return;
-
-      const newBoard = cloneBoard(board);
-      newBoard[r][c] = num;
-      setBoard(newBoard);
-
-      if (isBoardComplete(newBoard)) {
-        Alert.alert("🎉 Congratulations!", "You solved the puzzle!", [
-          { text: "New Game", onPress: startNewGame },
-        ]);
-      }
-    },
-    [selectedCell, puzzle, board, startNewGame],
-  );
-
-  const handleErase = useCallback(() => {
-    if (!selectedCell) return;
-    const [r, c] = selectedCell;
-    if (puzzle[r][c] !== 0) return;
-
-    const newBoard = cloneBoard(board);
-    newBoard[r][c] = 0;
-    setBoard(newBoard);
-  }, [selectedCell, puzzle, board]);
-
-  const handleClearAll = useCallback(() => {
-    setBoard(cloneBoard(puzzle));
-    setSelectedCell(null);
-  }, [puzzle]);
-
-  const handleHint = useCallback(() => {
-    const emptyCells: [number, number][] = [];
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
-        if (board[r][c] === 0) {
-          emptyCells.push([r, c]);
-        }
-      }
-    }
-
-    if (emptyCells.length === 0) return;
-
-    const [r, c] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-    const newBoard = cloneBoard(board);
-    newBoard[r][c] = solution[r][c];
-    setBoard(newBoard);
-    setSelectedCell([r, c]);
-
-    if (isBoardComplete(newBoard)) {
-      Alert.alert("🎉 Congratulations!", "You solved the puzzle!", [
-        { text: "New Game", onPress: startNewGame },
-      ]);
-    }
-  }, [board, solution, startNewGame]);
-
-  const handleSolve = useCallback(() => {
-    setBoard(cloneBoard(solution));
-    setSelectedCell(null);
-    Alert.alert("Solved", "The board has been filled with the solution.", [
-      { text: "New Game", onPress: startNewGame },
-      { text: "OK" },
-    ]);
-  }, [solution, startNewGame]);
-
-  if (board.length === 0) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Generating puzzle…</Text>
-      </View>
-    );
-  }
+export default function Home() {
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-
-      {/* Timer badge — top right */}
-      <View style={styles.header}>
-        <View style={styles.timerBadge}>
-          <MaterialIcons name="schedule" size={14} color="#1A1A1A" />
-          <Text style={styles.timerText}>{formatTime(seconds)}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.iconContainer}>
+              <MaterialIcons name="grid-view" size={24} color={COLORS.primary} />
+            </View>
+            <Text style={styles.headerTitle}>Sudoku</Text>
+          </View>
         </View>
-      </View>
 
-      {/* Board */}
-      <View style={styles.boardArea}>
-        <SudokuBoard
-          board={board}
-          puzzle={puzzle}
-          selectedCell={selectedCell}
-          onCellPress={handleCellPress}
-        />
-      </View>
+        {/* Primary Action: New Game */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.newGameButton}
+            onPress={() => router.push("/game")}
+          >
+            <MaterialIcons name="add-circle" size={24} color={COLORS.white} />
+            <Text style={styles.newGameButtonText}>New Game</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Number Pad */}
-      <View style={styles.padArea}>
-        <NumberPad onNumberPress={handleNumberPress} onErase={handleErase} onClearAll={handleClearAll} />
-      </View>
+        {/* Resume Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>CONTINUE PLAYING</Text>
+          <TouchableOpacity style={styles.resumeCard}>
+            {/* Mini Grid Preview */}
+            <View style={styles.miniGrid}>
+              {[0, 1, 2].map((row) => (
+                <View key={row} style={styles.miniGridRow}>
+                  {[0, 1, 2].map((col) => {
+                    let val = null;
+                    if (row === 0 && col === 0) val = "5";
+                    if (row === 1 && col === 1) val = "3";
+                    if (row === 2 && col === 2) val = "8";
+                    return (
+                      <View key={col} style={styles.miniCell}>
+                        {val && <Text style={styles.miniCellText}>{val}</Text>}
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+            <View style={styles.resumeInfo}>
+              <Text style={styles.percentComplete}>82% Complete</Text>
+              <Text style={styles.elapsedTime}>
+                12:45 <Text style={styles.elapsedLabel}>elapsed</Text>
+              </Text>
+              <View style={styles.resumeLink}>
+                <Text style={styles.resumeLinkText}>Resume Game</Text>
+                <MaterialIcons
+                  name="arrow-forward-ios"
+                  size={12}
+                  color={COLORS.primary}
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
 
-      {/* Footer Controls — Hint & Solve */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.hintButton} onPress={handleHint}>
-          <MaterialIcons name="lightbulb-outline" size={20} color="#1978e5" />
-          <Text style={styles.hintButtonText}>Hint</Text>
+        {/* Local Saves List */}
+        <View style={styles.section}>
+          <View style={styles.savesHeader}>
+            <Text style={styles.sectionTitle}>LOCAL SAVES</Text>
+            <View style={styles.slotsBadge}>
+              <Text style={styles.slotsBadgeText}>10 SLOTS</Text>
+            </View>
+          </View>
+
+          <View style={styles.saveCard}>
+            <View>
+              <View
+                style={[
+                  styles.difficultyBadge,
+                  { backgroundColor: COLORS.emerald100 },
+                ]}
+              >
+                <Text
+                  style={[styles.difficultyText, { color: COLORS.emerald600 }]}
+                >
+                  EASY
+                </Text>
+              </View>
+              <View style={styles.saveTimeContainer}>
+                <MaterialIcons
+                  name="schedule"
+                  size={14}
+                  color={COLORS.slate400}
+                />
+                <Text style={styles.saveTime}>04:20</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.resumeButtonSmall}>
+              <Text style={styles.resumeButtonSmallText}>Resume</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.saveCard}>
+            <View>
+              <View
+                style={[
+                  styles.difficultyBadge,
+                  { backgroundColor: COLORS.amber100 },
+                ]}
+              >
+                <Text
+                  style={[styles.difficultyText, { color: COLORS.amber600 }]}
+                >
+                  MEDIUM
+                </Text>
+              </View>
+              <View style={styles.saveTimeContainer}>
+                <MaterialIcons
+                  name="schedule"
+                  size={14}
+                  color={COLORS.slate400}
+                />
+                <Text style={styles.saveTime}>08:15</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.resumeButtonSmall}>
+              <Text style={styles.resumeButtonSmallText}>Resume</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.saveCard}>
+            <View>
+              <View
+                style={[
+                  styles.difficultyBadge,
+                  { backgroundColor: COLORS.rose100 },
+                ]}
+              >
+                <Text
+                  style={[styles.difficultyText, { color: COLORS.rose600 }]}
+                >
+                  HARD
+                </Text>
+              </View>
+              <View style={styles.saveTimeContainer}>
+                <MaterialIcons
+                  name="schedule"
+                  size={14}
+                  color={COLORS.slate400}
+                />
+                <Text style={styles.saveTime}>15:50</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.resumeButtonSmall}>
+              <Text style={styles.resumeButtonSmallText}>Resume</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.scrollNote}>Scroll down to view more saves</Text>
+        </View>
+      </ScrollView>
+
+      {/* Bottom Navigation */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem}>
+          <MaterialIcons name="home" size={24} color={COLORS.primary} />
+          <Text style={[styles.navText, { color: COLORS.primary }]}>HOME</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.solveButton} onPress={handleSolve}>
-          <MaterialIcons name="check-circle" size={20} color="#fff" />
-          <Text style={styles.solveButtonText}>Solve</Text>
+        <TouchableOpacity style={styles.navItem}>
+          <MaterialIcons name="bar-chart" size={24} color={COLORS.slate400} />
+          <Text style={styles.navText}>STATS</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <MaterialIcons name="settings" size={24} color={COLORS.slate400} />
+          <Text style={styles.navText}>SETTINGS</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -190,96 +212,221 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: COLORS.backgroundLight,
   },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: "#FAFAFA",
-    alignItems: "center",
-    justifyContent: "center",
+  scrollContent: {
+    paddingBottom: 100,
   },
-  loadingText: {
-    fontSize: 16,
-    color: "#999",
-  },
-
-  /* Header / Timer */
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-    alignItems: "flex-end",
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 24,
   },
-  timerBadge: {
+  headerTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.04)",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
+    gap: 12,
   },
-  timerText: {
-    fontFamily: "monospace",
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#1A1A1A",
+  iconContainer: {
+    backgroundColor: "rgba(25, 120, 229, 0.1)",
+    padding: 8,
+    borderRadius: 12,
   },
-
-  /* Board */
-  boardArea: {
-    alignItems: "center",
-    paddingTop: 4,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: COLORS.charcoal,
   },
-
-  /* Number Pad */
-  padArea: {
-    alignItems: "center",
-    flex: 1,
+  section: {
+    paddingHorizontal: 24,
+    marginBottom: 32,
   },
-
-  /* Footer */
-  footer: {
+  newGameButton: {
+    backgroundColor: COLORS.primary,
     flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  hintButton: {
-    flex: 1,
-    flexDirection: "row",
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 2,
-    borderColor: "rgba(25, 120, 229, 0.2)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#fff",
-  },
-  hintButtonText: {
-    color: "#1978e5",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  solveButton: {
-    flex: 1,
-    flexDirection: "row",
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#1978e5",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    shadowColor: "#1978e5",
+    paddingVertical: 16,
+    borderRadius: 32,
+    gap: 10,
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
   },
-  solveButtonText: {
-    color: "#fff",
-    fontSize: 16,
+  newGameButtonText: {
+    color: COLORS.white,
+    fontSize: 18,
     fontWeight: "700",
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: COLORS.slate400,
+    letterSpacing: 1.2,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  resumeCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 20,
+    borderWidth: 1,
+    borderColor: COLORS.slate100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  miniGrid: {
+    width: 96,
+    height: 96,
+    backgroundColor: COLORS.slate100,
+    borderRadius: 8,
+    padding: 4,
+    gap: 4,
+  },
+  miniGridRow: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 4,
+  },
+  miniCell: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniCellText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+  resumeInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  percentComplete: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.slate400,
+  },
+  elapsedTime: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: COLORS.charcoal,
+  },
+  elapsedLabel: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: COLORS.slate400,
+  },
+  resumeLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  resumeLinkText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+  savesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  slotsBadge: {
+    backgroundColor: COLORS.slate100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  slotsBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: COLORS.slate400,
+  },
+  saveCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.slate100,
+  },
+  difficultyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    marginBottom: 4,
+  },
+  difficultyText: {
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  saveTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  saveTime: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.charcoal,
+  },
+  resumeButtonSmall: {
+    backgroundColor: "rgba(25, 120, 229, 0.1)",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  resumeButtonSmallText: {
+    color: COLORS.primary,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  scrollNote: {
+    textAlign: "center",
+    fontSize: 12,
+    color: COLORS.slate400,
+    fontWeight: "600",
+    marginTop: 8,
+  },
+  bottomNav: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: COLORS.slate100,
+    paddingBottom: 20,
+  },
+  navItem: {
+    alignItems: "center",
+    gap: 4,
+  },
+  navText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.slate400,
   },
 });
