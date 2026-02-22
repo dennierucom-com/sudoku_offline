@@ -9,7 +9,7 @@ import {
 import type { Board } from "../utils/sudoku";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const BOARD_PADDING = 8;
+const BOARD_PADDING = 16;
 const CELL_SIZE = Math.floor((SCREEN_WIDTH - BOARD_PADDING * 2) / 9);
 
 interface Props {
@@ -32,13 +32,8 @@ export default function SudokuBoard({
   const isHighlighted = (r: number, c: number) => {
     if (!selectedCell) return false;
     const [sr, sc] = selectedCell;
-    // Same row, column, or 3×3 box
-    return (
-      r === sr ||
-      c === sc ||
-      (Math.floor(r / 3) === Math.floor(sr / 3) &&
-        Math.floor(c / 3) === Math.floor(sc / 3))
-    );
+    // Same row or column
+    return r === sr || c === sc;
   };
 
   const isClue = (r: number, c: number) => puzzle[r][c] !== 0;
@@ -59,11 +54,11 @@ export default function SudokuBoard({
                 onPress={() => onCellPress(r, c)}
                 style={[
                   styles.cell,
+                  highlighted && styles.highlightedCell,
                   selected && styles.selectedCell,
-                  !selected && highlighted && styles.highlightedCell,
-                  // Thicker borders for 3×3 sub-grid edges
-                  c % 3 === 0 && c !== 0 && styles.thickLeft,
-                  r % 3 === 0 && r !== 0 && styles.thickTop,
+                  // Thick borders for 3x3 grids
+                  (c === 2 || c === 5) && styles.thickRight,
+                  (r === 2 || r === 5) && styles.thickBottom,
                 ]}
               >
                 <Text
@@ -86,9 +81,8 @@ export default function SudokuBoard({
 const styles = StyleSheet.create({
   board: {
     borderWidth: 2,
-    borderColor: "#333",
-    borderRadius: 4,
-    overflow: "hidden",
+    borderColor: "#1A1A1A",
+    backgroundColor: "#fff",
     alignSelf: "center",
   },
   row: {
@@ -98,34 +92,33 @@ const styles = StyleSheet.create({
     width: CELL_SIZE,
     height: CELL_SIZE,
     borderWidth: 0.5,
-    borderColor: "#999",
+    borderColor: "rgba(26, 26, 26, 0.1)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
   },
   selectedCell: {
-    backgroundColor: "#bbdefb",
+    backgroundColor: "#E8F0FE",
   },
   highlightedCell: {
-    backgroundColor: "#e3f2fd",
+    backgroundColor: "rgba(0, 0, 0, 0.03)",
   },
-  thickLeft: {
-    borderLeftWidth: 2,
-    borderLeftColor: "#333",
+  thickRight: {
+    borderRightWidth: 1.5,
+    borderRightColor: "#1A1A1A",
   },
-  thickTop: {
-    borderTopWidth: 2,
-    borderTopColor: "#333",
+  thickBottom: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#1A1A1A",
   },
   cellText: {
-    fontSize: CELL_SIZE * 0.5,
+    fontSize: 20,
   },
   clueText: {
     fontWeight: "700",
-    color: "#222",
+    color: "#1A1A1A",
   },
   userText: {
-    fontWeight: "400",
-    color: "#1565c0",
+    fontWeight: "700",
+    color: "#477eeb",
   },
 });
