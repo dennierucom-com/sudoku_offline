@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Button,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
@@ -15,33 +16,48 @@ const PAD_WIDTH = SCREEN_WIDTH - PAD_PADDING * 2;
 interface Props {
   onNumberPress: (num: number) => void;
   onErase: () => void;
+  onClearAll: () => void;
 }
 
-function NumberGroup({ nums, onPress }: { nums: number[]; onPress: (n: number) => void }) {
-  return (
-    <View style={styles.pill}>
-      {nums.map((n) => (
-        <TouchableOpacity
-          key={n}
-          style={styles.numberButton}
-          activeOpacity={0.5}
-          onPress={() => onPress(n)}
-        >
-          <Text style={styles.numberText}>{n}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-}
+export default function NumberPad({
+  onNumberPress,
+  onErase,
+  onClearAll,
+}: Props) {
+  const pressCountRef = useRef<Record<number, number>>({});
 
-export default function NumberPad({ onNumberPress, onErase }: Props) {
+  function getNextNumber(base: number): number {
+    const count = pressCountRef.current[base] || 0;
+    const result = base + (count % 3);
+    pressCountRef.current[base] = count + 1;
+    return result;
+  }
+
   return (
     <View style={styles.container}>
-      {/* Row 1: [1 2 3] + backspace */}
       <View style={styles.row}>
         <View style={styles.pillWrapper}>
-          <NumberGroup nums={[1, 2, 3]} onPress={onNumberPress} />
+          <TouchableOpacity
+            style={styles.numbersButton}
+            onPress={() => onNumberPress(getNextNumber(1))}
+          >
+            <Text style={styles.numbersButtonText}>1 2 3</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.numbersButton}
+            onPress={() => onNumberPress(getNextNumber(4))}
+          >
+            <Text style={styles.numbersButtonText}>4 5 6</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.numbersButton}
+            onPress={() => onNumberPress(getNextNumber(7))}
+          >
+            <Text style={styles.numbersButtonText}>7 8 9</Text>
+          </TouchableOpacity>
         </View>
+      </View>
+      <View style={styles.actionRow}>
         <TouchableOpacity
           style={styles.backspaceButton}
           activeOpacity={0.5}
@@ -49,13 +65,17 @@ export default function NumberPad({ onNumberPress, onErase }: Props) {
         >
           <MaterialIcons name="backspace" size={22} color="#1A1A1A" />
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.backspaceButton}
+          activeOpacity={0.5}
+          onPress={onClearAll}
+        >
+          <MaterialIcons name="delete-sweep" size={22} color="#1A1A1A" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backspaceButton} activeOpacity={0.5}>
+          <MaterialIcons name="save" size={22} color="#1A1A1A" />
+        </TouchableOpacity>
       </View>
-
-      {/* Row 2: [4 5 6] full-width */}
-      <NumberGroup nums={[4, 5, 6]} onPress={onNumberPress} />
-
-      {/* Row 3: [7 8 9] full-width */}
-      <NumberGroup nums={[7, 8, 9]} onPress={onNumberPress} />
     </View>
   );
 }
@@ -72,6 +92,8 @@ const styles = StyleSheet.create({
   },
   pillWrapper: {
     flex: 1,
+    flexDirection: "row",
+    gap: 16,
   },
   pill: {
     flexDirection: "row",
@@ -91,6 +113,11 @@ const styles = StyleSheet.create({
     color: "#1A1A1A",
     letterSpacing: 1,
   },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 16,
+  },
   backspaceButton: {
     width: 56,
     height: 56,
@@ -98,5 +125,26 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  numbersButton: {
+    flex: 1,
+    flexDirection: "row",
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#1978e5",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: "#1978e5",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  numbersButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });

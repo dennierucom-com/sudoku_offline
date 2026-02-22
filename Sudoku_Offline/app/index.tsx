@@ -98,6 +98,11 @@ export default function GameScreen() {
     setBoard(newBoard);
   }, [selectedCell, puzzle, board]);
 
+  const handleClearAll = useCallback(() => {
+    setBoard(cloneBoard(puzzle));
+    setSelectedCell(null);
+  }, [puzzle]);
+
   const handleHint = useCallback(() => {
     const emptyCells: [number, number][] = [];
     for (let r = 0; r < 9; r++) {
@@ -164,7 +169,7 @@ export default function GameScreen() {
 
       {/* Number Pad */}
       <View style={styles.padArea}>
-        <NumberPad onNumberPress={handleNumberPress} onErase={handleErase} />
+        <NumberPad onNumberPress={handleNumberPress} onErase={handleErase} onClearAll={handleClearAll} />
       </View>
 
       {/* Footer Controls — Hint & Solve */}
