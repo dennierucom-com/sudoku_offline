@@ -4,12 +4,10 @@ export default function RootLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: "#1565c0" },
-        headerTintColor: "#fff",
-        headerTitleStyle: { fontWeight: "700" },
+        headerShown: false,
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Sudoku" }} />
+      <Stack.Screen name="index" />
     </Stack>
   );
 }

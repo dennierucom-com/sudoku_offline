@@ -9,8 +9,9 @@ import {
 import type { Board } from "../utils/sudoku";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const BOARD_PADDING = 8;
-const CELL_SIZE = Math.floor((SCREEN_WIDTH - BOARD_PADDING * 2) / 9);
+const BOARD_PADDING = 20;
+const BOARD_SIZE = SCREEN_WIDTH - BOARD_PADDING * 2;
+const CELL_SIZE = Math.floor(BOARD_SIZE / 9);
 
 interface Props {
   board: Board;
@@ -29,67 +30,58 @@ export default function SudokuBoard({
   const isSelected = (r: number, c: number) =>
     selectedCell?.[0] === r && selectedCell?.[1] === c;
 
-  const isHighlighted = (r: number, c: number) => {
-    if (!selectedCell) return false;
-    const [sr, sc] = selectedCell;
-    // Same row, column, or 3×3 box
-    return (
-      r === sr ||
-      c === sc ||
-      (Math.floor(r / 3) === Math.floor(sr / 3) &&
-        Math.floor(c / 3) === Math.floor(sc / 3))
-    );
-  };
-
   const isClue = (r: number, c: number) => puzzle[r][c] !== 0;
 
   return (
-    <View style={styles.board}>
-      {board.map((row, r) => (
-        <View key={r} style={styles.row}>
-          {row.map((cell, c) => {
-            const selected = isSelected(r, c);
-            const highlighted = isHighlighted(r, c);
-            const clue = isClue(r, c);
+    <View style={styles.boardOuter}>
+      <View style={styles.board}>
+        {board.map((row, r) => (
+          <View key={r} style={styles.row}>
+            {row.map((cell, c) => {
+              const selected = isSelected(r, c);
+              const clue = isClue(r, c);
 
-            return (
-              <TouchableOpacity
-                key={c}
-                activeOpacity={0.6}
-                onPress={() => onCellPress(r, c)}
-                style={[
-                  styles.cell,
-                  selected && styles.selectedCell,
-                  !selected && highlighted && styles.highlightedCell,
-                  // Thicker borders for 3×3 sub-grid edges
-                  c % 3 === 0 && c !== 0 && styles.thickLeft,
-                  r % 3 === 0 && r !== 0 && styles.thickTop,
-                ]}
-              >
-                <Text
+              return (
+                <TouchableOpacity
+                  key={c}
+                  activeOpacity={0.7}
+                  onPress={() => onCellPress(r, c)}
                   style={[
-                    styles.cellText,
-                    clue ? styles.clueText : styles.userText,
+                    styles.cell,
+                    selected && styles.selectedCell,
+                    // Thick right border after columns 2 and 5
+                    (c === 2 || c === 5) && styles.thickRight,
+                    // Thick bottom border after rows 2 and 5
+                    (r === 2 || r === 5) && styles.thickBottom,
                   ]}
                 >
-                  {cell !== 0 ? String(cell) : ""}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      ))}
+                  <Text
+                    style={[
+                      styles.cellText,
+                      clue ? styles.clueText : styles.userText,
+                    ]}
+                  >
+                    {cell !== 0 ? String(cell) : ""}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  board: {
-    borderWidth: 2,
-    borderColor: "#333",
-    borderRadius: 4,
-    overflow: "hidden",
+  boardOuter: {
     alignSelf: "center",
+    borderWidth: 2.5,
+    borderColor: "#1A1A1A",
+    backgroundColor: "#fff",
+  },
+  board: {
+    // Inner container for the grid rows
   },
   row: {
     flexDirection: "row",
@@ -98,34 +90,31 @@ const styles = StyleSheet.create({
     width: CELL_SIZE,
     height: CELL_SIZE,
     borderWidth: 0.5,
-    borderColor: "#999",
+    borderColor: "#ccc",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
   },
   selectedCell: {
-    backgroundColor: "#bbdefb",
+    backgroundColor: "#E8F0FE",
   },
-  highlightedCell: {
-    backgroundColor: "#e3f2fd",
+  thickRight: {
+    borderRightWidth: 2,
+    borderRightColor: "#1A1A1A",
   },
-  thickLeft: {
-    borderLeftWidth: 2,
-    borderLeftColor: "#333",
-  },
-  thickTop: {
-    borderTopWidth: 2,
-    borderTopColor: "#333",
+  thickBottom: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#1A1A1A",
   },
   cellText: {
-    fontSize: CELL_SIZE * 0.5,
+    fontSize: CELL_SIZE * 0.48,
   },
   clueText: {
     fontWeight: "700",
-    color: "#222",
+    color: "#1A1A1A",
   },
   userText: {
-    fontWeight: "400",
-    color: "#1565c0",
+    fontWeight: "600",
+    color: "#4A90D9",
   },
 });
