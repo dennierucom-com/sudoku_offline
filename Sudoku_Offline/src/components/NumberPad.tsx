@@ -1,69 +1,102 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const PAD_PADDING = 20;
+const PAD_WIDTH = SCREEN_WIDTH - PAD_PADDING * 2;
 
 interface Props {
   onNumberPress: (num: number) => void;
   onErase: () => void;
 }
 
-export default function NumberPad({ onNumberPress, onErase }: Props) {
-  const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+function NumberGroup({ nums, onPress }: { nums: number[]; onPress: (n: number) => void }) {
+  return (
+    <View style={styles.pill}>
+      {nums.map((n) => (
+        <TouchableOpacity
+          key={n}
+          style={styles.numberButton}
+          activeOpacity={0.5}
+          onPress={() => onPress(n)}
+        >
+          <Text style={styles.numberText}>{n}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
 
+export default function NumberPad({ onNumberPress, onErase }: Props) {
   return (
     <View style={styles.container}>
+      {/* Row 1: [1 2 3] + backspace */}
       <View style={styles.row}>
-        {numbers.map((n) => (
-          <TouchableOpacity
-            key={n}
-            style={styles.button}
-            activeOpacity={0.6}
-            onPress={() => onNumberPress(n)}
-          >
-            <Text style={styles.buttonText}>{n}</Text>
-          </TouchableOpacity>
-        ))}
+        <View style={styles.pillWrapper}>
+          <NumberGroup nums={[1, 2, 3]} onPress={onNumberPress} />
+        </View>
+        <TouchableOpacity
+          style={styles.backspaceButton}
+          activeOpacity={0.5}
+          onPress={onErase}
+        >
+          <MaterialIcons name="backspace" size={22} color="#1A1A1A" />
+        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={[styles.button, styles.eraseButton]}
-        activeOpacity={0.6}
-        onPress={onErase}
-      >
-        <Text style={[styles.buttonText, styles.eraseText]}>Erase</Text>
-      </TouchableOpacity>
+      {/* Row 2: [4 5 6] full-width */}
+      <NumberGroup nums={[4, 5, 6]} onPress={onNumberPress} />
+
+      {/* Row 3: [7 8 9] full-width */}
+      <NumberGroup nums={[7, 8, 9]} onPress={onNumberPress} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: "center",
-    marginTop: 20,
-    gap: 10,
+    width: PAD_WIDTH,
+    marginTop: 32,
+    gap: 12,
   },
   row: {
     flexDirection: "row",
-    gap: 6,
+    gap: 12,
   },
-  button: {
-    width: 36,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: "#e3f2fd",
+  pillWrapper: {
+    flex: 1,
+  },
+  pill: {
+    flexDirection: "row",
+    height: 56,
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    borderRadius: 28,
+    overflow: "hidden",
+  },
+  numberButton: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1565c0",
+  numberText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    letterSpacing: 1,
   },
-  eraseButton: {
-    width: 80,
-    backgroundColor: "#ffebee",
-  },
-  eraseText: {
-    color: "#c62828",
-    fontSize: 14,
+  backspaceButton: {
+    width: 56,
+    height: 56,
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
