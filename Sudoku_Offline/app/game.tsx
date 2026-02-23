@@ -12,6 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { MaterialIcons } from "@expo/vector-icons";
 import SudokuBoard from "../src/components/SudokuBoard";
 import NumberPad from "../src/components/NumberPad";
+import CongratsModal from "../src/components/CongratsModal";
 import {
   generatePuzzle,
   cloneBoard,
@@ -39,6 +40,7 @@ export default function GameScreen() {
   );
   const [seconds, setSeconds] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showCongrats, setShowCongrats] = useState(false);
 
   const startNewGame = useCallback(() => {
     const { puzzle: p, solution: s } = generatePuzzle(40);
@@ -47,6 +49,7 @@ export default function GameScreen() {
     setBoard(cloneBoard(p));
     setSelectedCell(null);
     setSeconds(0);
+    setShowCongrats(false);
     clearGameState();
   }, []);
 
@@ -116,9 +119,7 @@ export default function GameScreen() {
 
       if (isBoardComplete(newBoard)) {
         clearGameState();
-        Alert.alert("🎉 Congratulations!", "You solved the puzzle!", [
-          { text: "New Game", onPress: startNewGame },
-        ]);
+        setShowCongrats(true);
       }
     },
     [selectedCell, puzzle, board, startNewGame],
@@ -158,20 +159,18 @@ export default function GameScreen() {
     setSelectedCell([r, c]);
 
     if (isBoardComplete(newBoard)) {
-      Alert.alert("🎉 Congratulations!", "You solved the puzzle!", [
-        { text: "New Game", onPress: startNewGame },
-      ]);
+      clearGameState();
+      setShowCongrats(true);
     }
   }, [board, solution, startNewGame]);
 
   const handleSolve = useCallback(() => {
-    setBoard(cloneBoard(solution));
+    const solvedBoard = cloneBoard(solution);
+    setBoard(solvedBoard);
     setSelectedCell(null);
-    Alert.alert("Solved", "The board has been filled with the solution.", [
-      { text: "New Game", onPress: startNewGame },
-      { text: "OK" },
-    ]);
-  }, [solution, startNewGame]);
+    clearGameState();
+    setShowCongrats(true);
+  }, [solution]);
 
   if (!isInitialized || board.length === 0) {
     return (
@@ -229,6 +228,13 @@ export default function GameScreen() {
           <Text style={styles.solveButtonText}>Solve</Text>
         </TouchableOpacity>
       </View>
+
+      <CongratsModal
+        visible={showCongrats}
+        time={formatTime(seconds)}
+        onHome={() => router.replace("/")}
+        onNewGame={startNewGame}
+      />
     </SafeAreaView>
   );
 }
