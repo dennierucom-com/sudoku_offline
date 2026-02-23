@@ -19,9 +19,18 @@ import {
   isBoardComplete,
   type Board,
 } from "../src/utils/sudoku";
+import {
+  saveGameState,
+  loadGameState,
+  clearGameState,
+  GameState,
+} from "../src/utils/storage";
+import { useLocalSearchParams } from "expo-router";
 
 export default function GameScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ newGame?: string }>();
+
   const [board, setBoard] = useState<Board>([]);
   const [puzzle, setPuzzle] = useState<Board>([]);
   const [solution, setSolution] = useState<Board>([]);
@@ -29,6 +38,7 @@ export default function GameScreen() {
     null,
   );
   const [seconds, setSeconds] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const startNewGame = useCallback(() => {
     const { puzzle: p, solution: s } = generatePuzzle(40);
@@ -37,11 +47,34 @@ export default function GameScreen() {
     setBoard(cloneBoard(p));
     setSelectedCell(null);
     setSeconds(0);
+    clearGameState();
   }, []);
 
   useEffect(() => {
-    startNewGame();
-  }, [startNewGame]);
+    const saved = loadGameState();
+    if (saved && params.newGame !== "true") {
+      setBoard(saved.board);
+      setPuzzle(saved.puzzle);
+      setSolution(saved.solution);
+      setSeconds(saved.seconds);
+    } else {
+      startNewGame();
+    }
+    setIsInitialized(true);
+  }, [params.newGame, startNewGame]);
+
+  // Persistent saving
+  useEffect(() => {
+    if (isInitialized && board.length > 0) {
+      saveGameState({
+        board,
+        puzzle,
+        solution,
+        seconds,
+        lastUpdated: Date.now(),
+      });
+    }
+  }, [isInitialized, board, puzzle, solution, seconds]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -82,6 +115,7 @@ export default function GameScreen() {
       setBoard(newBoard);
 
       if (isBoardComplete(newBoard)) {
+        clearGameState();
         Alert.alert("🎉 Congratulations!", "You solved the puzzle!", [
           { text: "New Game", onPress: startNewGame },
         ]);
@@ -139,7 +173,7 @@ export default function GameScreen() {
     ]);
   }, [solution, startNewGame]);
 
-  if (board.length === 0) {
+  if (!isInitialized || board.length === 0) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Generating puzzle…</Text>
@@ -153,7 +187,10 @@ export default function GameScreen() {
 
       {/* Header — Back button & Timer badge */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <MaterialIcons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <View style={styles.timerBadge}>
@@ -174,7 +211,11 @@ export default function GameScreen() {
 
       {/* Number Pad */}
       <View style={styles.padArea}>
-        <NumberPad onNumberPress={handleNumberPress} onErase={handleErase} onClearAll={handleClearAll} />
+        <NumberPad
+          onNumberPress={handleNumberPress}
+          onErase={handleErase}
+          onClearAll={handleClearAll}
+        />
       </View>
 
       {/* Footer Controls — Hint & Solve */}

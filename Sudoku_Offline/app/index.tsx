@@ -10,6 +10,8 @@ import {
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
+import { useFocusEffect } from "expo-router";
+import { loadGameState, hasSavedGame, GameState } from "../src/utils/storage";
 
 const COLORS = {
   primary: "#1978e5",
@@ -28,6 +30,36 @@ const COLORS = {
 
 export default function Home() {
   const router = useRouter();
+  const [savedGame, setSavedGame] = React.useState<GameState | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const state = loadGameState();
+      setSavedGame(state);
+    }, []),
+  );
+
+  const formatTime = (s: number) => {
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  const calculateProgress = (board: number[][], puzzle: number[][]) => {
+    let filled = 0;
+    let total = 0;
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (puzzle[r][c] === 0) {
+          total++;
+          if (board[r][c] !== 0) filled++;
+        }
+      }
+    }
+    return total === 0 ? 0 : Math.round((filled / total) * 100);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -37,7 +69,11 @@ export default function Home() {
         <View style={styles.header}>
           <View style={styles.headerTitleContainer}>
             <View style={styles.iconContainer}>
-              <MaterialIcons name="grid-view" size={24} color={COLORS.primary} />
+              <MaterialIcons
+                name="grid-view"
+                size={24}
+                color={COLORS.primary}
+              />
             </View>
             <Text style={styles.headerTitle}>Sudoku</Text>
           </View>
@@ -47,7 +83,9 @@ export default function Home() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.newGameButton}
-            onPress={() => router.push("/game")}
+            onPress={() =>
+              router.push({ pathname: "/game", params: { newGame: "true" } })
+            }
           >
             <MaterialIcons name="add-circle" size={24} color={COLORS.white} />
             <Text style={styles.newGameButtonText}>New Game</Text>
@@ -55,43 +93,63 @@ export default function Home() {
         </View>
 
         {/* Resume Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>CONTINUE PLAYING</Text>
-          <TouchableOpacity style={styles.resumeCard}>
-            {/* Mini Grid Preview */}
-            <View style={styles.miniGrid}>
-              {[0, 1, 2].map((row) => (
-                <View key={row} style={styles.miniGridRow}>
-                  {[0, 1, 2].map((col) => {
-                    let val = null;
-                    if (row === 0 && col === 0) val = "5";
-                    if (row === 1 && col === 1) val = "3";
-                    if (row === 2 && col === 2) val = "8";
-                    return (
-                      <View key={col} style={styles.miniCell}>
-                        {val && <Text style={styles.miniCellText}>{val}</Text>}
-                      </View>
-                    );
-                  })}
-                </View>
-              ))}
-            </View>
-            <View style={styles.resumeInfo}>
-              <Text style={styles.percentComplete}>82% Complete</Text>
-              <Text style={styles.elapsedTime}>
-                12:45 <Text style={styles.elapsedLabel}>elapsed</Text>
-              </Text>
-              <View style={styles.resumeLink}>
-                <Text style={styles.resumeLinkText}>Resume Game</Text>
-                <MaterialIcons
-                  name="arrow-forward-ios"
-                  size={12}
-                  color={COLORS.primary}
-                />
+        {savedGame && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>CONTINUE PLAYING</Text>
+            <TouchableOpacity
+              style={styles.resumeCard}
+              onPress={() => router.push("/game")}
+            >
+              {/* Mini Grid Preview */}
+              <View style={styles.miniGrid}>
+                {[0, 1, 2].map((row) => (
+                  <View key={row} style={styles.miniGridRow}>
+                    {[0, 1, 2].map((col) => {
+                      const val = savedGame.board[row][col];
+                      return (
+                        <View key={col} style={styles.miniCell}>
+                          {val !== 0 && (
+                            <Text
+                              style={[
+                                styles.miniCellText,
+                                {
+                                  color:
+                                    savedGame.puzzle[row][col] !== 0
+                                      ? COLORS.charcoal
+                                      : COLORS.primary,
+                                },
+                              ]}
+                            >
+                              {val}
+                            </Text>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
               </View>
-            </View>
-          </TouchableOpacity>
-        </View>
+              <View style={styles.resumeInfo}>
+                <Text style={styles.percentComplete}>
+                  {calculateProgress(savedGame.board, savedGame.puzzle)}%
+                  Complete
+                </Text>
+                <Text style={styles.elapsedTime}>
+                  {formatTime(savedGame.seconds)}{" "}
+                  <Text style={styles.elapsedLabel}>elapsed</Text>
+                </Text>
+                <View style={styles.resumeLink}>
+                  <Text style={styles.resumeLinkText}>Resume Game</Text>
+                  <MaterialIcons
+                    name="arrow-forward-ios"
+                    size={12}
+                    color={COLORS.primary}
+                  />
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Local Saves List */}
         <View style={styles.section}>
