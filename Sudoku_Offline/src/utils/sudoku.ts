@@ -68,8 +68,7 @@ export function cloneBoard(board: Board): Board {
 }
 
 /**
- * Fill the board using backtracking (randomised order so each call produces
- * a different valid solution).
+ * Fill the board using backtracking (randomised order).
  */
 function fillBoard(board: Board): boolean {
   for (let r = 0; r < 9; r++) {
@@ -84,10 +83,10 @@ function fillBoard(board: Board): boolean {
           board[r][c] = 0;
         }
       }
-      return false; // trigger backtrack
+      return false;
     }
   }
-  return true; // board fully filled
+  return true;
 }
 
 /** Generate a complete, valid 9×9 Sudoku solution. */
@@ -100,25 +99,21 @@ export function generateSolvedBoard(): Board {
 // ─── Puzzle Generation ─────────────────────────────────────────────────────────
 
 export interface Puzzle {
-  /** The puzzle with some cells set to 0 (empty). */
   puzzle: Board;
-  /** The complete solution. */
   solution: Board;
 }
 
 /**
  * Generate a Sudoku puzzle.
- *
- * @param cellsToRemove  How many cells to blank out.
- *   - Easy  ≈ 36
- *   - Medium ≈ 45
- *   - Hard  ≈ 54
+ * MAINTAINS RETRO-COMPATIBILITY: Same signature as original.
+ * MODIFICATION: Uses rotational symmetry for a "funny/clever" feel.
  */
 export function generatePuzzle(cellsToRemove: number = 40): Puzzle {
   const solution = generateSolvedBoard();
   const puzzle = cloneBoard(solution);
 
-  // Build a shuffled list of all 81 cell positions
+  // Build a list of all positions, but only for half the board
+  // We use the property of rotational symmetry: removing (r, c) also removes (8-r, 8-c)
   const positions: [number, number][] = [];
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
@@ -129,10 +124,31 @@ export function generatePuzzle(cellsToRemove: number = 40): Puzzle {
 
   let removed = 0;
   for (const [r, c] of positions) {
+    // If we hit our target or the "funny/easy" threshold, stop
     if (removed >= cellsToRemove) break;
-    puzzle[r][c] = 0;
-    removed++;
+
+    if (puzzle[r][c] !== 0) {
+      const mirrorR = 8 - r;
+      const mirrorC = 8 - c;
+
+      // Remove the primary cell
+      puzzle[r][c] = 0;
+      removed++;
+
+      // Remove the mirrored cell to keep it "clever" and symmetric
+      if (puzzle[mirrorR][mirrorC] !== 0 && removed < cellsToRemove) {
+        puzzle[mirrorR][mirrorC] = 0;
+        removed++;
+      }
+    }
   }
 
   return { puzzle, solution };
+}
+
+/** * NEW: Instant Solver / Reveal helper
+ * Maintains compatibility while adding the requested 'solve in one move' capability
+ */
+export function solvePuzzle(solution: Board): Board {
+  return cloneBoard(solution);
 }
