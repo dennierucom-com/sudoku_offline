@@ -1,13 +1,12 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import React, { useRef } from "react";
 import {
-  View,
+  Dimensions,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  Button,
+  View,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const PAD_PADDING = 20;
@@ -17,12 +16,14 @@ interface Props {
   onNumberPress: (num: number) => void;
   onErase: () => void;
   onClearAll: () => void;
+  onSave: () => void;
 }
 
 export default function NumberPad({
   onNumberPress,
   onErase,
   onClearAll,
+  onSave,
 }: Props) {
   const pressCountRef = useRef<Record<number, number>>({});
 
@@ -72,7 +73,11 @@ export default function NumberPad({
         >
           <MaterialIcons name="delete-sweep" size={22} color="#1A1A1A" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.backspaceButton} activeOpacity={0.5}>
+        <TouchableOpacity
+          style={styles.saveButton}
+          activeOpacity={0.5}
+          onPress={onSave}
+        >
           <MaterialIcons name="save" size={22} color="#1A1A1A" />
         </TouchableOpacity>
       </View>
@@ -119,6 +124,15 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   backspaceButton: {
+    width: 56,
+    height: 56,
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  saveButton: {
     width: 56,
     height: 56,
     backgroundColor: "rgba(0, 0, 0, 0.05)",

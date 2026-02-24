@@ -1,36 +1,39 @@
-import React, { useState, useCallback, useEffect } from "react";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  View,
+  SafeAreaView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  SafeAreaView,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { MaterialIcons } from "@expo/vector-icons";
-import SudokuBoard from "../src/components/SudokuBoard";
-import NumberPad from "../src/components/NumberPad";
 import CongratsModal from "../src/components/CongratsModal";
+import NumberPad from "../src/components/NumberPad";
+import SaveModal from "../src/components/SaveModal";
+import SudokuBoard from "../src/components/SudokuBoard";
 import {
-  generatePuzzle,
+  addSavedGame,
+  clearGameState,
+  deleteSavedGame,
+  loadGameState,
+  loadSavedGames,
+  saveGameState,
+  updateSavedGame,
+  type GameState,
+} from "../src/utils/storage";
+import {
   cloneBoard,
-  isValidPlacement,
+  generatePuzzle,
   isBoardComplete,
+  isValidPlacement,
   type Board,
 } from "../src/utils/sudoku";
-import {
-  saveGameState,
-  loadGameState,
-  clearGameState,
-  GameState,
-} from "../src/utils/storage";
-import { useLocalSearchParams } from "expo-router";
 
 export default function GameScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ newGame?: string }>();
+  const params = useLocalSearchParams<{ newGame?: string; saveId?: string }>();
 
   const [board, setBoard] = useState<Board>([]);
   const [puzzle, setPuzzle] = useState<Board>([]);
@@ -41,6 +44,8 @@ export default function GameScreen() {
   const [seconds, setSeconds] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [currentSaveId, setCurrentSaveId] = useState<string | null>(null);
 
   const startNewGame = useCallback(() => {
     const { puzzle: p, solution: s } = generatePuzzle(40);
@@ -55,7 +60,19 @@ export default function GameScreen() {
 
   useEffect(() => {
     const saved = loadGameState();
-    if (saved && params.newGame !== "true") {
+    const savedGames = loadSavedGames();
+    const specificSaveId = params.saveId;
+
+    if (specificSaveId) {
+      const specificSave = savedGames.find((g) => g.id === specificSaveId);
+      if (specificSave) {
+        setBoard(specificSave.board);
+        setPuzzle(specificSave.puzzle);
+        setSolution(specificSave.solution);
+        setSeconds(specificSave.seconds);
+        setCurrentSaveId(specificSave.id);
+      }
+    } else if (saved && params.newGame !== "true") {
       setBoard(saved.board);
       setPuzzle(saved.puzzle);
       setSolution(saved.solution);
@@ -64,7 +81,7 @@ export default function GameScreen() {
       startNewGame();
     }
     setIsInitialized(true);
-  }, [params.newGame, startNewGame]);
+  }, [params.newGame, params.saveId, startNewGame]);
 
   // Persistent saving
   useEffect(() => {
@@ -119,10 +136,33 @@ export default function GameScreen() {
 
       if (isBoardComplete(newBoard)) {
         clearGameState();
+        if (currentSaveId) {
+          deleteSavedGame(currentSaveId);
+        }
         setShowCongrats(true);
       }
     },
-    [selectedCell, puzzle, board, startNewGame],
+    [selectedCell, puzzle, board, currentSaveId],
+  );
+
+  const handleManualSave = useCallback(
+    (name: string) => {
+      const state: GameState = {
+        board,
+        puzzle,
+        solution,
+        seconds,
+        lastUpdated: Date.now(),
+      };
+      if (currentSaveId) {
+        updateSavedGame(currentSaveId, state);
+      } else {
+        const id = addSavedGame(name, state);
+        setCurrentSaveId(id);
+      }
+      setShowSaveModal(false);
+    },
+    [board, puzzle, solution, seconds, currentSaveId],
   );
 
   const handleErase = useCallback(() => {
@@ -160,17 +200,23 @@ export default function GameScreen() {
 
     if (isBoardComplete(newBoard)) {
       clearGameState();
+      if (currentSaveId) {
+        deleteSavedGame(currentSaveId);
+      }
       setShowCongrats(true);
     }
-  }, [board, solution, startNewGame]);
+  }, [board, solution, currentSaveId]);
 
   const handleSolve = useCallback(() => {
     const solvedBoard = cloneBoard(solution);
     setBoard(solvedBoard);
     setSelectedCell(null);
     clearGameState();
+    if (currentSaveId) {
+      deleteSavedGame(currentSaveId);
+    }
     setShowCongrats(true);
-  }, [solution]);
+  }, [solution, currentSaveId]);
 
   if (!isInitialized || board.length === 0) {
     return (
@@ -214,6 +260,7 @@ export default function GameScreen() {
           onNumberPress={handleNumberPress}
           onErase={handleErase}
           onClearAll={handleClearAll}
+          onSave={() => setShowSaveModal(true)}
         />
       </View>
 
@@ -228,6 +275,12 @@ export default function GameScreen() {
           <Text style={styles.solveButtonText}>Solve</Text>
         </TouchableOpacity>
       </View>
+
+      <SaveModal
+        visible={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={handleManualSave}
+      />
 
       <CongratsModal
         visible={showCongrats}

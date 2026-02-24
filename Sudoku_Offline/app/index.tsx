@@ -1,17 +1,21 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
   SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
-import { useFocusEffect } from "expo-router";
-import { loadGameState, hasSavedGame, GameState } from "../src/utils/storage";
+import {
+  GameState,
+  loadGameState,
+  loadSavedGames,
+  SavedGame,
+} from "../src/utils/storage";
 
 const COLORS = {
   primary: "#1978e5",
@@ -31,11 +35,16 @@ const COLORS = {
 export default function Home() {
   const router = useRouter();
   const [savedGame, setSavedGame] = React.useState<GameState | null>(null);
+  const [savedGamesList, setSavedGamesList] = React.useState<SavedGame[]>([]);
+  const [isReady, setIsReady] = React.useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
       const state = loadGameState();
+      const list = loadSavedGames();
       setSavedGame(state);
+      setSavedGamesList(list);
+      setIsReady(true);
     }, []),
   );
 
@@ -156,95 +165,59 @@ export default function Home() {
           <View style={styles.savesHeader}>
             <Text style={styles.sectionTitle}>LOCAL SAVES</Text>
             <View style={styles.slotsBadge}>
-              <Text style={styles.slotsBadgeText}>10 SLOTS</Text>
+              <Text style={styles.slotsBadgeText}>
+                {savedGamesList.length}/10 SLOTS
+              </Text>
             </View>
           </View>
 
-          <View style={styles.saveCard}>
-            <View>
-              <View
-                style={[
-                  styles.difficultyBadge,
-                  { backgroundColor: COLORS.emerald100 },
-                ]}
-              >
-                <Text
-                  style={[styles.difficultyText, { color: COLORS.emerald600 }]}
+          {savedGamesList.length === 0 ? (
+            <View style={styles.emptySaves}>
+              <MaterialIcons
+                name="info-outline"
+                size={20}
+                color={COLORS.slate400}
+              />
+              <Text style={styles.emptySavesText}>No manual saves yet.</Text>
+            </View>
+          ) : (
+            savedGamesList.map((save) => (
+              <View key={save.id} style={styles.saveCard}>
+                <View style={styles.saveMainInfo}>
+                  <Text style={styles.saveName} numberOfLines={1}>
+                    {save.name}
+                  </Text>
+                  <View style={styles.saveTimeContainer}>
+                    <MaterialIcons
+                      name="schedule"
+                      size={14}
+                      color={COLORS.slate400}
+                    />
+                    <Text style={styles.saveTime}>
+                      {formatTime(save.seconds)}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.resumeButtonSmall}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/game",
+                      params: { saveId: save.id },
+                    })
+                  }
                 >
-                  EASY
-                </Text>
+                  <Text style={styles.resumeButtonSmallText}>Resume</Text>
+                </TouchableOpacity>
               </View>
-              <View style={styles.saveTimeContainer}>
-                <MaterialIcons
-                  name="schedule"
-                  size={14}
-                  color={COLORS.slate400}
-                />
-                <Text style={styles.saveTime}>04:20</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.resumeButtonSmall}>
-              <Text style={styles.resumeButtonSmallText}>Resume</Text>
-            </TouchableOpacity>
-          </View>
+            ))
+          )}
 
-          <View style={styles.saveCard}>
-            <View>
-              <View
-                style={[
-                  styles.difficultyBadge,
-                  { backgroundColor: COLORS.amber100 },
-                ]}
-              >
-                <Text
-                  style={[styles.difficultyText, { color: COLORS.amber600 }]}
-                >
-                  MEDIUM
-                </Text>
-              </View>
-              <View style={styles.saveTimeContainer}>
-                <MaterialIcons
-                  name="schedule"
-                  size={14}
-                  color={COLORS.slate400}
-                />
-                <Text style={styles.saveTime}>08:15</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.resumeButtonSmall}>
-              <Text style={styles.resumeButtonSmallText}>Resume</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.saveCard}>
-            <View>
-              <View
-                style={[
-                  styles.difficultyBadge,
-                  { backgroundColor: COLORS.rose100 },
-                ]}
-              >
-                <Text
-                  style={[styles.difficultyText, { color: COLORS.rose600 }]}
-                >
-                  HARD
-                </Text>
-              </View>
-              <View style={styles.saveTimeContainer}>
-                <MaterialIcons
-                  name="schedule"
-                  size={14}
-                  color={COLORS.slate400}
-                />
-                <Text style={styles.saveTime}>15:50</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.resumeButtonSmall}>
-              <Text style={styles.resumeButtonSmallText}>Resume</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.scrollNote}>Scroll down to view more saves</Text>
+          {savedGamesList.length > 5 && (
+            <Text style={styles.scrollNote}>
+              Scroll down to view more saves
+            </Text>
+          )}
         </View>
       </ScrollView>
 
@@ -425,26 +398,41 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.slate100,
   },
-  difficultyBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    marginBottom: 4,
-  },
-  difficultyText: {
-    fontSize: 10,
-    fontWeight: "800",
-  },
   saveTimeContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
+  saveMainInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  saveName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.charcoal,
+    marginBottom: 4,
+  },
   saveTime: {
     fontSize: 14,
     fontWeight: "600",
-    color: COLORS.charcoal,
+    color: COLORS.slate400,
+  },
+  emptySaves: {
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    gap: 8,
+    borderStyle: "dashed",
+    borderWidth: 2,
+    borderColor: COLORS.slate100,
+  },
+  emptySavesText: {
+    fontSize: 14,
+    color: COLORS.slate400,
+    fontWeight: "600",
   },
   resumeButtonSmall: {
     backgroundColor: "rgba(25, 120, 229, 0.1)",
